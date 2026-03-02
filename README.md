@@ -45,3 +45,8 @@ mine-revenue-forecaster/
 ## License
 
 MIT License — free to use, modify, and distribute.
+
+## 🚀 New Features (2026-03-02)
+- Add multi-commodity revenue modeling and scenario planning
+- Enhanced error handling and edge case coverage
+- Comprehensive unit tests and integration examples
