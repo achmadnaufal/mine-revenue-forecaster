@@ -1,52 +1,41 @@
 # Mine Revenue Forecaster
 
-Revenue forecasting model for coal mining operations with price sensitivity analysis
+Coal mining revenue projection model with price sensitivity and break-even analysis.
 
 ## Features
-- Data ingestion from CSV/Excel input files
-- Automated analysis and KPI calculation
-- Summary statistics and trend reporting
-- Sample data generator for testing and development
-
-## Installation
-
-```bash
-pip install -r requirements.txt
-```
+- Revenue, royalty, opex, and net margin calculation
+- Break-even price computation
+- Price sensitivity table across configurable price range
+- Configurable royalty rate (default 13% — Indonesian PKP2B standard)
+- Monthly production plan ingestion (CSV/Excel)
 
 ## Quick Start
 
 ```python
 from src.main import RevenueForecaster
+import pandas as pd
 
-analyzer = RevenueForecaster()
-df = analyzer.load_data("data/sample.csv")
-result = analyzer.analyze(df)
-print(result)
+fc = RevenueForecaster(config={
+    "royalty_rate": 0.13,
+    "transport_usd_t": 8.0,
+    "mining_cost_usd_t": 22.0,
+})
+
+df = pd.read_csv("sample_data/production_plan.csv")
+result = fc.forecast_revenue(df, price_usd_t=87.0)
+
+print(f"Total Volume:    {result['total_volume_mt']:,.0f} MT")
+print(f"Gross Revenue:   USD {result['gross_revenue_usd']:,.0f}")
+print(f"Net Revenue:     USD {result['net_revenue_usd']:,.0f}")
+print(f"EBITDA Margin:   {result['ebitda_margin_pct']:.1f}%")
+print(f"Break-even Price: USD {result['break_even_price_usd_t']:.2f}/t")
+
+# Price sensitivity
+sensitivity = fc.price_sensitivity(df, price_range=[60, 70, 80, 90, 100, 110])
+print(sensitivity[["price_usd_t", "net_revenue_usd", "ebitda_margin_pct", "profitable"]])
 ```
 
-## Data Format
-
-Expected CSV columns: `month, production_mt, price_usd_t, fx_rate, royalty_pct, cost_per_tonne, ebitda_usd_m`
-
-## Project Structure
-
+## Running Tests
+```bash
+pytest tests/ -v
 ```
-mine-revenue-forecaster/
-├── src/
-│   ├── main.py          # Core analysis logic
-│   └── data_generator.py # Sample data generator
-├── data/                # Data directory (gitignored for real data)
-├── examples/            # Usage examples
-├── requirements.txt
-└── README.md
-```
-
-## License
-
-MIT License — free to use, modify, and distribute.
-
-## 🚀 New Features (2026-03-02)
-- Add multi-commodity revenue modeling and scenario planning
-- Enhanced error handling and edge case coverage
-- Comprehensive unit tests and integration examples
