@@ -39,3 +39,24 @@ print(sensitivity[["price_usd_t", "net_revenue_usd", "ebitda_margin_pct", "profi
 ```bash
 pytest tests/ -v
 ```
+
+---
+
+## [v1.3.0] Quarterly Projection & Scenario Comparison
+
+```python
+# Quarterly P&L projection
+quarters = fc.quarterly_projection(prod_df, price_usd_t=85.0)
+print(quarters[["quarter", "volume_mt", "gross_revenue_usd", "net_revenue_usd", "ebitda_margin_pct"]])
+#   quarter  volume_mt  gross_revenue_usd  net_revenue_usd  ebitda_margin_pct
+#        Q1   131250.0       11156250.0       4568812.5              40.95
+#        Q2   131250.0       11156250.0       4568812.5              40.95
+
+# Side-by-side scenario comparison
+scenarios = fc.scenario_comparison(prod_df)
+print(scenarios[["scenario", "price_usd_t", "net_revenue_usd", "ebitda_margin_pct", "profitable"]])
+#     scenario  price_usd_t  net_revenue_usd  ebitda_margin_pct  profitable
+#   Bear Case          65.0       4875000.0              18.75        True
+#   Base Case          85.0      12750000.0              37.50        True
+#   Bull Case         110.0      24375000.0              55.11        True
+```

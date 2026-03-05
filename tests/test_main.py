@@ -91,3 +91,51 @@ class TestPriceSensitivity:
         rev_70 = result[result["price_usd_t"] == 70]["net_revenue_usd"].values[0]
         rev_100 = result[result["price_usd_t"] == 100]["net_revenue_usd"].values[0]
         assert rev_100 > rev_70
+
+
+class TestQuarterlyProjection:
+    def test_returns_dataframe(self, fc, prod_df):
+        result = fc.quarterly_projection(prod_df, price_usd_t=85.0)
+        assert isinstance(result, pd.DataFrame)
+
+    def test_four_quarters_by_default(self, fc, prod_df):
+        result = fc.quarterly_projection(prod_df, price_usd_t=85.0)
+        assert len(result) == 4
+
+    def test_custom_quarters(self, fc, prod_df):
+        result = fc.quarterly_projection(prod_df, price_usd_t=85.0, quarters=6)
+        assert len(result) == 6
+
+    def test_volume_sums_to_total(self, fc, prod_df):
+        result = fc.quarterly_projection(prod_df, price_usd_t=85.0)
+        assert abs(result["volume_mt"].sum() - prod_df["volume_mt"].sum()) < 1.0
+
+    def test_negative_price_raises(self, fc, prod_df):
+        with pytest.raises(ValueError, match="positive"):
+            fc.quarterly_projection(prod_df, price_usd_t=-10.0)
+
+    def test_net_revenue_is_gross_minus_costs(self, fc, prod_df):
+        result = fc.quarterly_projection(prod_df, price_usd_t=85.0)
+        for _, row in result.iterrows():
+            expected_net = row["gross_revenue_usd"] - row["royalty_usd"] - row["opex_usd"]
+            assert abs(row["net_revenue_usd"] - expected_net) < 0.01
+
+
+class TestScenarioComparison:
+    def test_returns_dataframe(self, fc, prod_df):
+        result = fc.scenario_comparison(prod_df)
+        assert isinstance(result, pd.DataFrame)
+
+    def test_three_default_scenarios(self, fc, prod_df):
+        result = fc.scenario_comparison(prod_df)
+        assert len(result) == 3
+
+    def test_bull_case_higher_revenue(self, fc, prod_df):
+        result = fc.scenario_comparison(prod_df)
+        revenues = result.set_index("scenario")["net_revenue_usd"]
+        assert revenues["Bull Case"] > revenues["Base Case"] > revenues["Bear Case"]
+
+    def test_custom_scenarios(self, fc, prod_df):
+        scenarios = [{"name": "Low", "price_usd_t": 60.0}, {"name": "High", "price_usd_t": 120.0}]
+        result = fc.scenario_comparison(prod_df, scenarios=scenarios)
+        assert len(result) == 2

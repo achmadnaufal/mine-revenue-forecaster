@@ -221,3 +221,112 @@ class RevenueForecaster:
             else:
                 rows.append({"metric": k, "value": v})
         return pd.DataFrame(rows)
+
+
+    def quarterly_projection(
+        self,
+        df: pd.DataFrame,
+        price_usd_t: Optional[float] = None,
+        quarters: int = 4,
+    ) -> pd.DataFrame:
+        """
+        Project revenue across quarters based on production plan.
+
+        Distributes total production evenly (or uses monthly data if available)
+        and computes per-quarter revenue, opex, and net revenue.
+
+        Args:
+            df: Production plan DataFrame with volume_mt (and optionally 'month' column).
+            price_usd_t: Coal price USD/tonne. Uses df column or raises if missing.
+            quarters: Number of quarters to project (default 4).
+
+        Returns:
+            DataFrame with quarter, volume_mt, gross_revenue_usd,
+            opex_usd, net_revenue_usd, ebitda_margin_pct.
+        """
+        df = self.preprocess(df)
+        if "volume_mt" not in df.columns:
+            raise ValueError("Column 'volume_mt' required")
+
+        if price_usd_t is None:
+            if "price_usd_t" in df.columns:
+                price_usd_t = float(df["price_usd_t"].mean())
+            else:
+                raise ValueError("price_usd_t required")
+
+        if price_usd_t <= 0:
+            raise ValueError(f"price_usd_t must be positive, got {price_usd_t}")
+
+        total_vol = float(df["volume_mt"].sum())
+        q_vol = total_vol / quarters
+
+        rows = []
+        for q in range(1, quarters + 1):
+            gross = q_vol * price_usd_t
+            royalty = gross * self.royalty_rate
+            opex = q_vol * (self.mining_cost_usd_t + self.transport_usd_t)
+            net = gross - royalty - opex
+            margin = net / gross * 100 if gross > 0 else 0
+            rows.append({
+                "quarter": f"Q{q}",
+                "volume_mt": round(q_vol, 1),
+                "price_usd_t": round(price_usd_t, 2),
+                "gross_revenue_usd": round(gross, 2),
+                "royalty_usd": round(royalty, 2),
+                "opex_usd": round(opex, 2),
+                "net_revenue_usd": round(net, 2),
+                "ebitda_margin_pct": round(margin, 2),
+            })
+        return pd.DataFrame(rows)
+
+    def scenario_comparison(
+        self,
+        df: pd.DataFrame,
+        scenarios: Optional[List[Dict[str, float]]] = None,
+    ) -> pd.DataFrame:
+        """
+        Compare revenue outcomes across multiple price/cost scenarios.
+
+        Args:
+            df: Production plan DataFrame.
+            scenarios: List of dicts with keys: name, price_usd_t,
+                       and optionally mining_cost_usd_t, transport_usd_t, royalty_rate.
+                       Defaults to base, bull, and bear case scenarios.
+
+        Returns:
+            DataFrame with one row per scenario showing key financial metrics.
+        """
+        if scenarios is None:
+            scenarios = [
+                {"name": "Bear Case", "price_usd_t": 65.0},
+                {"name": "Base Case", "price_usd_t": 85.0},
+                {"name": "Bull Case", "price_usd_t": 110.0},
+            ]
+
+        rows = []
+        original_config = {
+            "royalty_rate": self.royalty_rate,
+            "transport_usd_t": self.transport_usd_t,
+            "mining_cost_usd_t": self.mining_cost_usd_t,
+        }
+        for sc in scenarios:
+            self.royalty_rate = sc.get("royalty_rate", original_config["royalty_rate"])
+            self.transport_usd_t = sc.get("transport_usd_t", original_config["transport_usd_t"])
+            self.mining_cost_usd_t = sc.get("mining_cost_usd_t", original_config["mining_cost_usd_t"])
+            try:
+                res = self.forecast_revenue(df, price_usd_t=sc.get("price_usd_t"))
+                rows.append({
+                    "scenario": sc.get("name", "Unnamed"),
+                    "price_usd_t": res["price_used_usd_t"],
+                    "net_revenue_usd": res["net_revenue_usd"],
+                    "ebitda_margin_pct": res["ebitda_margin_pct"],
+                    "break_even_price_usd_t": res.get("break_even_price_usd_t"),
+                    "profitable": res["net_revenue_usd"] > 0,
+                })
+            except Exception as e:
+                rows.append({"scenario": sc.get("name", "Unnamed"), "error": str(e)})
+        # Restore
+        self.royalty_rate = original_config["royalty_rate"]
+        self.transport_usd_t = original_config["transport_usd_t"]
+        self.mining_cost_usd_t = original_config["mining_cost_usd_t"]
+        return pd.DataFrame(rows)
