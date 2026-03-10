@@ -1,25 +1,33 @@
-# Changelog
+# Changelog - Mine Revenue Forecaster
 
-## [CURRENT] - 2026-03-07
+## [1.3.0] - 2026-03-10
 
 ### Added
-- Add commodity price volatility modeling
-- Enhanced README with getting started guide
-- Comprehensive unit tests for core functions
-- Real-world sample data and fixtures
 
-### Improved
-- Edge case handling for null/empty inputs
-- Boundary condition validation
+- **Forecast Engine**: New `forecast_engine.py` with MineRevenueForecaster class
+  - `calculate_revenue_metrics()`: Revenue and margin calculation
+  - `forecast_simple_trend()`: Linear trend forecasting
+  - `scenario_analysis()`: Bull/base/bear case scenarios
+  - `calculate_breakeven_production()`: Break-even analysis
+  - `calculate_npv()`: Net present value calculation
+- **Test Suite**: 5 new tests for forecasting methods
+- **Financial Analysis**: NPV and break-even tools for investment decisions
 
-### Fixed
-- Various edge cases and corner scenarios
+## [1.2.0] - 2026-02-15
 
----
+### Added
 
-## [2026-03-08]
-- Enhanced documentation and examples
-- Added unit test fixtures and test coverage
-- Added comprehensive docstrings to key functions
-- Added error handling for edge cases
-- Improved README with setup and usage examples
+- Revenue projection templates
+- Basic forecasting
+
+## [1.1.0] - 2026-01-15
+
+### Added
+
+- Initial mining revenue module
+
+## [1.0.0] - 2025-12-01
+
+### Added
+
+- Initial forecasting framework
