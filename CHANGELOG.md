@@ -1,5 +1,16 @@
 # Changelog - Mine Revenue Forecaster
 
+## [1.4.0] - 2026-03-15
+
+### Added
+- **Monte Carlo Revenue Simulation** — `monte_carlo_revenue_simulation()`: Models revenue uncertainty via log-normal price sampling; returns P10/P90 range, VaR@95%, probability-of-profit, and price distribution statistics
+- **Unit Tests** — 8 new tests in `tests/test_monte_carlo.py` covering simulation correctness, edge cases, profitability scenarios, and reproducibility
+- **README** — Added Monte Carlo simulation usage example
+
+### Improved
+- Added `seed` parameter for reproducible Monte Carlo runs
+- Docstrings updated with `Raises` and `Example` sections
+
 ## [1.3.0] - 2026-03-10
 
 ### Added

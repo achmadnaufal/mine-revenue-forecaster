@@ -330,3 +330,91 @@ class RevenueForecaster:
         self.transport_usd_t = original_config["transport_usd_t"]
         self.mining_cost_usd_t = original_config["mining_cost_usd_t"]
         return pd.DataFrame(rows)
+
+    def monte_carlo_revenue_simulation(
+        self,
+        production_mt: float,
+        base_price_usd_t: float,
+        price_volatility_pct: float = 15.0,
+        n_simulations: int = 1000,
+        seed: Optional[int] = 42,
+    ) -> dict:
+        """
+        Run Monte Carlo simulation to model revenue uncertainty.
+
+        Simulates revenue distribution by sampling coal price from a
+        log-normal distribution parameterized by volatility.
+
+        Args:
+            production_mt: Annual production in metric tonnes
+            base_price_usd_t: Expected/mean coal price (USD/tonne)
+            price_volatility_pct: Annualised price volatility as % of mean, default 15%
+            n_simulations: Number of Monte Carlo iterations, default 1000
+            seed: Random seed for reproducibility, default 42
+
+        Returns:
+            Dict with revenue statistics:
+                - mean_revenue_usd, median_revenue_usd, std_revenue_usd
+                - p10_revenue_usd, p90_revenue_usd (10th/90th percentiles)
+                - var_95_usd (Value at Risk at 95% confidence)
+                - prob_profitable_pct
+                - price_distribution: {mean, std, min, max}
+
+        Raises:
+            ValueError: If production_mt or base_price_usd_t <= 0
+
+        Example:
+            >>> forecaster = MineRevenueForecaster(royalty_rate=0.13)
+            >>> sim = forecaster.monte_carlo_revenue_simulation(
+            ...     production_mt=500_000,
+            ...     base_price_usd_t=90.0,
+            ...     price_volatility_pct=20.0,
+            ... )
+            >>> print(f"P90 revenue: ${sim['p90_revenue_usd']:,.0f}")
+        """
+        if production_mt <= 0:
+            raise ValueError("production_mt must be positive")
+        if base_price_usd_t <= 0:
+            raise ValueError("base_price_usd_t must be positive")
+        if not (0 < price_volatility_pct < 200):
+            raise ValueError("price_volatility_pct must be between 0 and 200")
+        if n_simulations < 10:
+            raise ValueError("n_simulations must be at least 10")
+
+        rng = np.random.default_rng(seed)
+
+        # Log-normal price simulation
+        sigma = price_volatility_pct / 100.0
+        mu = np.log(base_price_usd_t) - 0.5 * sigma ** 2
+        simulated_prices = rng.lognormal(mean=mu, sigma=sigma, size=n_simulations)
+
+        # Revenue per simulation
+        total_cost_per_t = self.mining_cost_usd_t + self.transport_usd_t
+        revenues = []
+        for price in simulated_prices:
+            gross = production_mt * price
+            royalty = gross * self.royalty_rate
+            cost = production_mt * total_cost_per_t
+            net = gross - royalty - cost
+            revenues.append(net)
+
+        revenues_arr = np.array(revenues)
+        break_even_price = total_cost_per_t / (1 - self.royalty_rate)
+
+        return {
+            "mean_revenue_usd": round(float(revenues_arr.mean()), 0),
+            "median_revenue_usd": round(float(np.median(revenues_arr)), 0),
+            "std_revenue_usd": round(float(revenues_arr.std()), 0),
+            "p10_revenue_usd": round(float(np.percentile(revenues_arr, 10)), 0),
+            "p90_revenue_usd": round(float(np.percentile(revenues_arr, 90)), 0),
+            "var_95_usd": round(float(np.percentile(revenues_arr, 5)), 0),
+            "prob_profitable_pct": round(float((revenues_arr > 0).mean() * 100), 1),
+            "n_simulations": n_simulations,
+            "break_even_price_usd_t": round(break_even_price, 2),
+            "price_distribution": {
+                "mean_usd_t": round(float(simulated_prices.mean()), 2),
+                "std_usd_t": round(float(simulated_prices.std()), 2),
+                "min_usd_t": round(float(simulated_prices.min()), 2),
+                "max_usd_t": round(float(simulated_prices.max()), 2),
+            },
+        }
