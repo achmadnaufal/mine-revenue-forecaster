@@ -1,5 +1,24 @@
 # Changelog - Mine Revenue Forecaster
 
+## [1.5.0] - 2026-03-18
+
+### Added
+- **Cost Structure Analyzer** (`src/cost_structure_analyzer.py`) — mine cost disaggregation and AISC analysis
+  - `CostComponent` and `ProductionScenario` dataclasses with full input validation
+  - C1 cash cost calculation with strip-ratio premium adjustment (±5% per unit vs SR=5 baseline)
+  - All-In Sustaining Cost (AISC) = C1 + royalty + sustaining capex
+  - Break-even coal price solver accounting for royalty as % of revenue
+  - Annual EBITDA approximation for project economics
+  - `cost_breakdown()`: full cost waterfall with benchmark positioning (vs industry AISC median)
+  - `strip_ratio_sensitivity()`: AISC and margin across a range of strip ratios
+  - Indonesian royalty rate catalogue (IUP Small/Medium/Large, PKP2B, IUPK)
+- **Unit tests** — 29 tests in `tests/test_cost_structure_analyzer.py` covering C1, AISC, BEP, sensitivity, and catalogue validation
+
+### References
+- World Coal Association (2021) coal cost benchmarking
+- Indonesian ESDM HPB royalty formula
+- Wood Mackenzie Coal Cost Curve methodology
+
 ## [1.4.0] - 2026-03-15
 
 ### Added
