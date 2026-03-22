@@ -1,5 +1,23 @@
 # Changelog - Mine Revenue Forecaster
 
+## [1.6.0] - 2026-03-22
+
+### Added
+- **Hedging Strategy Optimizer** (`src/hedging_strategy_optimizer.py`) — coal price forward-cover analysis
+  - `HedgeScenario` and `HedgeResult` dataclasses for structured scenario specification
+  - `evaluate()` — calculates blended revenue, hedge P&L, EBIT, and EBIT margin for a single hedge scenario
+  - `compare_scenarios()` — batch evaluation of multiple coverage strategies, sorted by EBIT
+  - `scan_hedge_ratios()` — sweeps 0%–100% coverage in configurable steps to generate EBIT curve
+  - `breakeven_spot_price()` — calculates the spot price level below which hedging adds net value
+  - `hedge_value_at_risk()` — parametric VaR reduction estimate from hedging (95%/99% confidence levels)
+  - Full input validation: production volume, hedge ratio bounds, price positivity, cost non-negativity
+- **Unit tests** — 27 tests in `tests/test_hedging_strategy_optimizer.py` covering all public methods and error paths
+
+### References
+- Hull (2018) Options, Futures, and Other Derivatives, 10th Ed.
+- ICE Futures Newcastle Coal contract specifications
+- APBI Price Risk Management Guidelines
+
 ## [1.5.0] - 2026-03-18
 
 ### Added
